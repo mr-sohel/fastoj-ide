@@ -173,7 +173,7 @@ fastoj-ide/
 │   └── StatusBar.tsx             # Bottom bar with compile status, theme, and verdict
 ├── lib/
 │   ├── editorThemes.ts           # Custom Monaco themes and getThemeColors helper
-│   └── runCode.ts                # Client-side API callers: runCppLocal, runCppWithJudge0
+│   └── runCode.ts                # Client-side API caller: runCppLocal
 ├── public/                       # Static assets
 ├── .gitignore
 ├── biome.json                    # Biome config (linter/formatter)
@@ -390,18 +390,7 @@ int main() {
 
 ## ⚙️ Configuration
 
-### Environment Variables (Optional)
-For future Judge0 integration or remote runner:
-
-```bash
-# .env.local
-NEXT_PUBLIC_JUDGE0_RAPIDAPI_KEY=your_rapidapi_key
-NEXT_PUBLIC_JUDGE0_HOST=judge0-ce.p.rapidapi.com
-NEXT_PUBLIC_RUN_BACKEND=local  # or 'judge0', 'remote'
-NEXT_PUBLIC_RUNNER_URL=https://your-runner-api.com
-```
-
-Currently, the app uses local g++ by default.
+The app uses local g++ compiler by default. No additional configuration is required.
 
 ## 🔐 Security Considerations
 

@@ -8,7 +8,7 @@ import Navbar from '@/components/Navbar';
 import SettingsModal from '@/components/SettingsModal';
 import StatusBar from '@/components/StatusBar';
 import { getThemeColors } from '@/lib/editorThemes';
-import { runCppLocal, runCppWithJudge0 } from '@/lib/runCode';
+import { runCppLocal } from '@/lib/runCode';
 
 const defaultCode = `#include <bits/stdc++.h>
 using namespace std;
@@ -119,16 +119,7 @@ export default function Home() {
     setStderr('');
 
     try {
-      // Prefer local compilation via g++ if available
-      let res;
-      try {
-        res = await runCppLocal(code, input);
-      } catch (localErr) {
-        // Fallback to Judge0 only if key present
-        const hasKey = !!process.env.NEXT_PUBLIC_JUDGE0_RAPIDAPI_KEY;
-        if (!hasKey) throw localErr;
-        res = await runCppWithJudge0(code, input);
-      }
+      const res = await runCppLocal(code, input);
 
       // Compilation errors (only if status is CE)
       if (res.status && res.status.id === 6) {
