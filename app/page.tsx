@@ -1,65 +1,277 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import CodeEditor from '@/components/CodeEditor';
+import IOPanel from '@/components/IOPanel';
+import Navbar from '@/components/Navbar';
+import SettingsModal from '@/components/SettingsModal';
+import StatusBar from '@/components/StatusBar';
+import { getThemeColors } from '@/lib/editorThemes';
+import { runCppLocal, runCppWithJudge0 } from '@/lib/runCode';
+
+const defaultCode = `#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+   // your code goes here
+
+   return 0;
+}`;
 
 export default function Home() {
+  const [code, setCode] = useState(defaultCode);
+  const [input, setInput] = useState('');
+  const [stdout, setStdout] = useState('');
+  const [expectedOutput, setExpectedOutput] = useState('');
+  const [stderr, setStderr] = useState('');
+  const [testResult, setTestResult] = useState<'none' | 'accepted' | 'wrong'>('none');
+  const [compileStatus, setCompileStatus] = useState<'idle' | 'compiling' | 'success' | 'error'>('idle');
+  const [compileMessage, setCompileMessage] = useState<string>('');
+  const [compileErrors, setCompileErrors] = useState<string>('');
+  const compileTimerRef = useRef<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [editorSettings, setEditorSettings] = useState({
+    fontSize: 14,
+    fontFamily: 'Monaco',
+    editorTheme: 'vs-dark',
+  });
+
+  // Load code and settings from localStorage on mount
+  useEffect(() => {
+    const savedCode = localStorage.getItem('code');
+    const savedSettings = localStorage.getItem('editorSettings');
+    
+    if (savedCode) {
+      setCode(savedCode);
+    }
+
+    if (savedSettings) {
+      setEditorSettings(JSON.parse(savedSettings));
+    }
+    
+    setMounted(true);
+  }, []);
+
+  // Save code to localStorage
+  useEffect(() => {
+    if (!mounted) return;
+    localStorage.setItem('code', code);
+  }, [code, mounted]);
+
+  // Save editor settings to localStorage
+  useEffect(() => {
+    if (!mounted) return;
+    localStorage.setItem('editorSettings', JSON.stringify(editorSettings));
+  }, [editorSettings, mounted]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+B: Run code
+      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+        e.preventDefault();
+        handleRun();
+      }
+      // Ctrl+S: Save code manually
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        localStorage.setItem('code', code);
+        setCompileMessage('Code saved');
+        setTimeout(() => {
+          if (compileStatus === 'idle') setCompileMessage('');
+        }, 2000);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [code, input, expectedOutput, compileStatus]);
+
+  const handleDownload = () => {
+    const blob = new Blob([code], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'solution.cpp';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Normalize output for comparison
+  const normalize = useCallback((s: string) => 
+    s.replace(/\r/g, '').split(/\n/).map(l => l.replace(/\s+$/, '')).join('\n').trim(), 
+    []
+  );
+
+  const handleRun = async () => {
+    if (compileTimerRef.current) {
+      clearTimeout(compileTimerRef.current);
+      compileTimerRef.current = null;
+    }
+    setCompileStatus('compiling');
+    setCompileMessage('Compiling…');
+    setTestResult('none');
+    setStdout('');
+    setStderr('');
+
+    try {
+      // Prefer local compilation via g++ if available
+      let res;
+      try {
+        res = await runCppLocal(code, input);
+      } catch (localErr) {
+        // Fallback to Judge0 only if key present
+        const hasKey = !!process.env.NEXT_PUBLIC_JUDGE0_RAPIDAPI_KEY;
+        if (!hasKey) throw localErr;
+        res = await runCppWithJudge0(code, input);
+      }
+
+      // Compilation errors (only if status is CE)
+      if (res.status && res.status.id === 6) {
+        setStderr(res.compile_output || 'Compilation error');
+        setCompileStatus('error');
+        setCompileMessage('Compilation error');
+        setCompileErrors(res.compile_output || '');
+        setTestResult('none');
+        return;
+      }
+
+      // Clear compile errors on success
+      setCompileErrors('');
+
+      // Runtime output
+      setStdout(res.stdout || '');
+      setStderr(res.stderr || '');
+
+      const meta: string[] = [];
+      if (res.time) meta.push(`${res.time}s`);
+      if (typeof res.memory === 'number') meta.push(`${res.memory} KB`);
+      const baseMsg = meta.length ? `Ran in ${meta.join(', ')}` : 'Run completed';
+
+      // Check for runtime errors based on status, not just stderr presence
+      if (res.status && res.status.id === 4) {
+        setCompileStatus('error');
+        setCompileMessage(`${baseMsg} • Runtime error`);
+        setTestResult('none');
+        return;
+      }
+
+      if (expectedOutput.trim().length > 0) {
+        if (normalize(res.stdout || '') === normalize(expectedOutput)) {
+          setCompileStatus('success');
+          setCompileMessage(`${baseMsg} • Accepted`);
+          setTestResult('accepted');
+        } else {
+          setCompileStatus('success');
+          setCompileMessage(`${baseMsg} • Wrong Answer`);
+          setTestResult('wrong');
+        }
+      } else {
+        setCompileStatus('success');
+        setCompileMessage(baseMsg);
+        setTestResult('none');
+      }
+    } catch (err: any) {
+      setCompileStatus('error');
+      setCompileMessage(`Run failed: ${err?.message || 'Unknown error'}`);
+      setTestResult('none');
+    }
+  };
+
+  const handleCodeChange = useCallback((value: string | undefined) => {
+    setCode(value || '');
+  }, []);
+
+  const handleReset = useCallback(() => {
+    setCode(defaultCode);
+    setInput('');
+    setStdout('');
+    setExpectedOutput('');
+    setStderr('');
+    setCompileStatus('idle');
+    setCompileMessage('');
+    setCompileErrors('');
+    setTestResult('none');
+  }, [defaultCode]);
+
+  const handleSettingsChange = useCallback((newSettings: typeof editorSettings) => {
+    setEditorSettings(newSettings);
+  }, []);
+
+  // Memoize theme colors to avoid recalculation
+  const colors = useMemo(() => getThemeColors(editorSettings.editorTheme), [editorSettings.editorTheme]);
+
+  if (!mounted) {
+    return null; // Prevent hydration mismatch
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <div className="h-screen flex flex-col" style={{ backgroundColor: colors.background }}>
+      <Navbar
+        onDownload={handleDownload}
+        onRun={handleRun}
+        onReset={handleReset}
+        onSettings={() => setIsSettingsOpen(true)}
+        editorTheme={editorSettings.editorTheme}
+      />
+      
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={editorSettings}
+        onSettingsChange={handleSettingsChange}
+        editorTheme={editorSettings.editorTheme}
+      />
+      
+      <div className="flex-1 overflow-hidden">
+        <PanelGroup direction="horizontal">
+          {/* Code Editor Panel */}
+          <Panel defaultSize={60} minSize={30}>
+            <CodeEditor
+              code={code}
+              onChange={handleCodeChange}
+              fontSize={editorSettings.fontSize}
+              fontFamily={editorSettings.fontFamily}
+              editorTheme={editorSettings.editorTheme}
+              compileErrors={compileErrors}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+          </Panel>
+          
+          {/* Resize Handle */}
+          <PanelResizeHandle 
+            className="w-1 transition-colors cursor-col-resize" 
+            style={{ backgroundColor: colors.border }}
+            onMouseEnter={(e: any) => e.target.style.backgroundColor = '#3B82F6'}
+            onMouseLeave={(e: any) => e.target.style.backgroundColor = colors.border}
+          />
+          
+          {/* I/O Panel */}
+          <Panel defaultSize={40} minSize={25}>
+            <IOPanel
+              input={input}
+              onInputChange={setInput}
+              stdout={stdout}
+              expectedOutput={expectedOutput}
+              onExpectedChange={setExpectedOutput}
+              stderr={stderr}
+              editorTheme={editorSettings.editorTheme}
+              fontFamily={editorSettings.fontFamily}
+              testResult={testResult}
+            />
+          </Panel>
+        </PanelGroup>
+      </div>
+
+      <StatusBar
+        status={compileStatus}
+        message={compileMessage}
+        testResult={testResult}
+        editorTheme={editorSettings.editorTheme}
+      />
     </div>
   );
 }
