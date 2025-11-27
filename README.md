@@ -1,481 +1,515 @@
 # FastOJ IDE
 
-A fast, modern, and lightweight C++ IDE built with Next.js, featuring Monaco editor, real-time compilation, and an intuitive split-panel interface. Designed for competitive programming and quick C++ prototyping with ICPC-style input/output testing.
+A modern, fast online judge IDE for C++ competitive programming with Docker-based code execution, BullMQ job queue, and Redis backend.
+
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Next.js](https://img.shields.io/badge/Next.js-16.0.4-black)
+![React](https://img.shields.io/badge/React-18.2.0-61dafb)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6)
+
+---
 
 ## 🚀 Quick Start
 
+Run the project with one command:
+```bash
+npm run go
+```
+
+This will automatically:
+- ✅ Start Redis container (if not running)
+- ✅ Launch worker process in background
+- ✅ Start dev server at http://localhost:3000
+
+**First time?** See [Initial Setup](#-initial-setup) below.
+
+---
+
+## 📋 Requirements
+
+| Software | Version | Purpose |
+|----------|---------|---------|
+| **Node.js** | 20+ | Runtime for Next.js and worker |
+| **npm** | 10+ | Package manager |
+| **Docker Desktop** | Latest | Container runtime for code execution |
+| **Windows** | 10/11 | Operating system (PowerShell/CMD) |
+
+---
+
+## 🔧 Initial Setup
+
+### 1. Clone & Install
 ```bash
 git clone <your-repo-url>
 cd fastoj-ide
 npm install
-npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and start coding!
+### 2. Build Docker Image
+```bash
+docker build -t fastoj-gcc .
+```
 
-> **Note:** Requires g++ compiler (MinGW-w64 on Windows, g++ on Linux/Mac)
+This creates a GCC container with:
+- GCC compiler (latest)
+- `/usr/bin/time` utility for memory measurement
+- C++20 standard support
 
-![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Next.js](https://img.shields.io/badge/Next.js-16.0.4-black)
-![React](https://img.shields.io/badge/React-19.2.0-61dafb)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6)
-![C++20](https://img.shields.io/badge/C++-20-00599c)
+### 3. Create Redis Container
+```bash
+docker run -d --name fastoj-redis -p 6379:6379 redis:7-alpine
+```
 
-## ✨ Features
+### 4. Run the Application
+```bash
+npm run go
+```
 
-### 🎨 Editor
-- **Monaco Editor** - Full-featured code editor with C++ syntax highlighting
-- **Multiple Themes** - Built-in and custom themes:
-  - Built-in: VS Dark, VS Light
-  - Custom: Monokai, Solarized (Light/Dark), Gruvbox (Light/Dark), Dracula, Nord
-- **Theme Consistency** - Entire UI (navbar, panels, status bar) adapts to selected editor theme
-- **Customizable Fonts** - Choose font family and size (persisted in localStorage)
-- **Inline Error Markers** - Compilation errors displayed directly in the editor with red squiggly underlines at exact line/column positions
-- **Auto-save** - Code automatically saved to localStorage
+Open http://localhost:3000 and start coding!
 
-### 📊 I/O Panel
+---
+
+## 🎯 Features
+
+### Code Editor
+- **Monaco Editor** - Same editor as VS Code
+- **Syntax Highlighting** - Full C++ support with IntelliSense
+- **Multiple Themes** - Dark, Light, Monokai, Dracula, Nord, Gruvbox, Solarized
+- **Customizable** - Font size and family settings
+- **Auto-save** - Code persisted to localStorage
+- **Error Markers** - Inline compilation errors with line/column precision
+
+### Execution Engine
+- **Docker Isolation** - Safe sandboxed execution
+- **Resource Limits:**
+  - Memory: 256MB
+  - CPU: 1.0 core
+  - Time: 2 seconds
+  - PIDs: 50 max processes
+  - Network: Disabled
+- **Accurate Metrics** - Real execution time (ms) and memory (MB)
+- **BullMQ Queue** - Reliable job processing with Redis
+
+### I/O Management
 - **Input Tab** - Provide stdin for your program
-- **Output Tabs**:
-  - **stdout** - Program output
-  - **Expected Output** - Manual input for test case verification
-  - **stderr** - Debug output (e.g., `cerr` statements) and runtime errors
-- **Line Numbers** - All text areas and outputs display line numbers synced with content scrolling
-- **Resizable Panels** - Drag horizontal separator between editor and I/O panel; drag vertical separator between Input and Output sections
-- **Verdict Indicators** - Green/red dots on stdout and expected output tabs show Accepted/Wrong Answer status
+- **Output Tabs:**
+  - stdout - Program output
+  - Expected Output - Test case validation
+  - stderr - Debug output and errors
+- **Test Validation** - Automatic AC/WA detection
+- **Line Numbers** - Synchronized with content
 
-### 🚀 Compilation & Execution
-- **Local Compilation** - Uses `g++ -std=c++20 -O2` on your machine (requires MinGW-w64 on Windows or g++ on Linux/Mac)
-- **Keyboard Shortcuts**:
-  - `Ctrl+B` / `⌘+B` - Compile and run code
-  - `Ctrl+S` / `⌘+S` - Save code manually to localStorage
-- **Real-time Feedback**:
-  - Compilation status (Idle → Compiling → Success/Error)
-  - Execution time and memory usage (when available)
-  - Test verdict: Accepted, Wrong Answer, Runtime Error, Time Limit Exceeded, Compilation Error
-- **Output Comparison** - Automatically compares stdout with expected output (normalized whitespace)
-- **Status Bar** - Shows compilation info, current theme, and test result at the bottom
+### User Experience
+- **Keyboard Shortcuts:**
+  - `Ctrl+B` - Compile and run
+  - `Ctrl+S` - Manual save to localStorage
+- **Status Bar** - Shows verdict, time, and memory
+- **Resizable Panels** - Adjust editor and I/O sizes
+- **Theme Consistency** - UI adapts to selected editor theme
 
-### 💾 File Management
-- **Download** - Export code as `.cpp` file
-- **Reset** - Restore default template (`bits/stdc++.h` boilerplate)
-- **Persistence** - Code and settings saved across sessions
-
-### ⚙️ Settings
-- **Font Size** - Adjustable from 10px to 24px with slider control
-- **Font Family** - Choose from: Monaco, JetBrains Mono, Fira Code
-- **Theme Selection** - Dropdown with all available themes
-- **Tab Size** - Hardcoded to 3 spaces for consistent indentation
-- **Minimal UI** - Compact settings modal near the gear button
-
-## ⚡ Performance Optimizations
-
-FastOJ IDE is built with performance in mind:
-
-- **React.memo** - Components wrapped with memo to prevent unnecessary re-renders
-- **useCallback** - Event handlers memoized to maintain referential equality
-- **useMemo** - Theme colors and expensive computations cached
-- **Code Splitting** - Next.js automatic code splitting for faster initial loads
-- **LocalStorage Caching** - Code and settings persisted locally for instant restoration
-- **Lazy Mounting** - Editor and components mount only after hydration
-- **Optimized Monaco** - Minimal editor options, disabled minimap, efficient marker updates
-- **Debounced Storage** - LocalStorage writes optimized to avoid excessive I/O
-- **Efficient Subprocess Management** - Temporary directories, proper cleanup, timeout handling
-- **Fast Compilation** - C++20 with -O2 optimization flag for faster executables
-
-## 🛠️ Technology Stack
-
-### Frontend Framework
-- **Next.js 16.0.4** (App Router)
-  - Server-side rendering and static generation
-  - API routes for backend logic
-  - File-based routing
-  - Hot module replacement for fast development
-
-### Language & Type Safety
-- **TypeScript 5.x**
-  - Static typing for all components
-  - IntelliSense and autocomplete
-  - Type-safe props and state management
-
-### UI & Styling
-- **TailwindCSS 4.x**
-  - Utility-first CSS framework
-  - Custom theming via inline styles for dynamic color adaptation
-  - Minimal, monospaced design
-- **React 19.2.0**
-  - Component-based architecture
-  - Hooks for state and side effects
-  - Ref management for editor instances
-
-### Editor
-- **@monaco-editor/react 4.7.0**
-  - VS Code's Monaco editor wrapped for React
-  - Language support for C++ with syntax highlighting
-  - Custom theme registration and switching
-  - Programmatic marker API for error highlighting
-  - OnMount hook for editor instance access
-  - Tab size hardcoded to 3 spaces
-
-### Layout
-- **react-resizable-panels 3.0.6**
-  - Horizontal split: Editor (left) vs I/O Panel (right)
-  - Vertical split: Input (top) vs Output (bottom)
-  - Smooth drag handles with hover effects
-  - Panel size persistence (optional, not yet wired)
-
-### Backend Execution
-- **Next.js API Routes** (`/api/run`)
-  - Node.js runtime with `child_process` spawn
-  - Creates temporary directory in OS tmpdir for each run
-  - Compiles with `g++ -std=c++20 -O2 main.cpp -o a.out` (C++20 standard)
-  - Executes binary with stdin piping and timeouts
-  - Returns structured JSON: `{ stdout, stderr, compile_output, status: { id, description } }`
-- **Security Measures** (for local development):
-  - 4-second execution timeout (configurable up to 20s)
-  - Process isolation via temporary directories
-  - Automatic cleanup after run
-### State Management
-- **React useState & useEffect**
-  - Local state for code, I/O, settings, compile status
-  - LocalStorage persistence for code and editor settings
-  - useRef for editor instance and timer references
-
-### Utilities
-- **Custom Theme System** (`lib/editorThemes.ts`)
-  - `customThemes` - Monaco theme definitions with tokenColors and colors
-  - `getThemeColors(themeName)` - Maps theme to UI colors (background, foreground, borders, hover states)
-  - Consistent palette across editor, navbar, panels, modal, status bar
-
-### Error Parsing
-- **g++ Error Regex**
-  - Pattern: `main.cpp:(\d+):(\d+):\s+(error|warning):\s+(.+)`
-  - Extracts line, column, severity, and message
-  - Converts to Monaco `IMarkerData` for inline display
+---
 
 ## 📁 Project Structure
 
 ```
 fastoj-ide/
-├── app/
+├── app/                      # Next.js 16 app directory
 │   ├── api/
-│   │   └── run/
-│   │       └── route.ts          # Backend API for local g++ compilation/execution
-│   ├── layout.tsx                # Root layout with metadata
-│   └── page.tsx                  # Main app: orchestrates editor, I/O, navbar, status bar
-├── components/
-│   ├── CodeEditor.tsx            # Monaco editor wrapper with theme registration and error markers
-│   ├── IOPanel.tsx               # Split I/O panel with tabs (stdout, expected, stderr)
-│   ├── LineNumberedTextarea.tsx  # Editable textarea with synced line number gutter
-│   ├── LineNumberedPre.tsx       # Read-only pre block with synced line number gutter
-│   ├── Navbar.tsx                # Top bar with File menu, Run button, Settings button
-│   ├── SettingsModal.tsx         # Compact settings popover for font/theme customization
-│   └── StatusBar.tsx             # Bottom bar with compile status, theme, and verdict
-├── lib/
-│   ├── editorThemes.ts           # Custom Monaco themes and getThemeColors helper
-│   └── runCode.ts                # Client-side API caller: runCppLocal
-├── public/                       # Static assets
-├── .gitignore
-├── biome.json                    # Biome config (linter/formatter)
-├── next.config.ts                # Next.js configuration
-├── package.json                  # Dependencies and scripts
-├── postcss.config.mjs            # PostCSS for Tailwind
-├── tailwind.config.ts            # Tailwind configuration
-├── tsconfig.json                 # TypeScript configuration
-└── README.md                     # This file
+│   │   ├── run/             # POST endpoint - Submit code jobs
+│   │   │   └── route.ts     # Creates job in BullMQ queue
+│   │   └── result/          # GET endpoint - Poll job results
+│   │       └── route.ts     # Returns job status/output
+│   ├── layout.tsx           # Root layout with metadata
+│   ├── page.tsx             # Main IDE interface
+│   └── globals.css          # Global styles
+│
+├── components/              # React components
+│   ├── CodeEditor.tsx      # Monaco editor wrapper
+│   ├── IOPanel.tsx         # Input/Output tabs panel
+│   ├── Navbar.tsx          # Top navigation bar
+│   ├── StatusBar.tsx       # Bottom status with metrics
+│   ├── SettingsModal.tsx   # Theme and font settings
+│   └── LineNumbered*.tsx   # Line-numbered text areas
+│
+├── lib/                     # Core utilities
+│   ├── bullmq.ts           # BullMQ queue configuration
+│   ├── dockerRunner.ts     # Docker execution logic
+│   ├── editorThemes.ts     # Monaco theme definitions
+│   └── runCode.ts          # Frontend API client
+│
+├── worker/                  # Background job processor
+│   └── runWorker.ts        # BullMQ worker (processes jobs)
+│
+├── public/                  # Static assets
+│
+├── Dockerfile              # GCC execution environment
+├── start.bat               # Windows startup script
+├── package.json            # Dependencies and scripts
+├── tsconfig.json           # TypeScript configuration
+├── next.config.ts          # Next.js configuration
+├── tailwind.config.ts      # Tailwind CSS config
+└── README.md               # This file
 ```
-
-## 🔄 How It Works
-
-### 1. User Interaction Flow
-```
-User writes code in Monaco Editor
-         ↓
-Clicks "Run" button in Navbar
-         ↓
-app/page.tsx handleRun() triggered
-         ↓
-Clear previous outputs, set status to "Compiling"
-         ↓
-POST request to /api/run with { code, stdin }
-```
-
-### 2. Backend Compilation & Execution (API Route)
-```
-/api/run receives POST request
-         ↓
-Create temp directory (e.g., /tmp/cpp-run-abc123/)
-         ↓
-Write code to main.cpp
-         ↓
-Spawn g++ process: g++ -std=c++20 -O2 main.cpp -o a.out
-         ↓
-If compile.code !== 0:
-    → Return { compile_output: stderr, status: { id: 6 } }
-         ↓
-Spawn executable: ./a.out
-         ↓
-Pipe stdin, capture stdout/stderr, apply timeout
-         ↓
-If timeout: kill process, status.id = 5 (TLE)
-If exit code != 0: status.id = 4 (Runtime Error)
-If success: status.id = 3 (Accepted)
-         ↓
-Return { stdout, stderr, compile_output, status }
-```
-
-### 3. Result Processing (Frontend)
-```
-Receive response from /api/run
-         ↓
-If status.id === 6 (Compilation Error):
-    → Set compileErrors (triggers Monaco markers)
-    → Show error in stderr tab
-    → Status bar: "Compilation error"
-         ↓
-If status.id === 4 (Runtime Error):
-    → Show stderr output
-    → Status bar: "Runtime error"
-         ↓
-If status.id === 3 (Accepted):
-    → Display stdout
-    → Compare with expectedOutput (if provided)
-         ↓
-If outputs match (normalized):
-    → testResult = 'accepted', green dot on tabs
-    → Status bar: "Accepted"
-         ↓
-If outputs differ:
-    → testResult = 'wrong', red dot on tabs
-    → Status bar: "Wrong Answer"
-```
-
-### 4. Theme Synchronization
-```
-User selects theme in Settings
-         ↓
-editorSettings.editorTheme updated
-         ↓
-localStorage saves settings
-         ↓
-CodeEditor registers custom theme via monaco.editor.defineTheme()
-         ↓
-getThemeColors(editorTheme) called in page.tsx
-         ↓
-Colors object { background, foreground, border, hoverBackground, secondaryBackground }
-         ↓
-Passed as inline styles to:
-    - Page background
-    - Navbar buttons and dropdown
-    - IOPanel headers, tabs, textareas
-    - SettingsModal background and controls
-    - StatusBar background and text
-    - PanelResizeHandle separators
-```
-
-### 5. Error Marker Flow
-```
-Compilation fails with g++ output
-         ↓
-app/page.tsx sets compileErrors state
-         ↓
-CodeEditor receives compileErrors prop
-         ↓
-useEffect in CodeEditor parses errors via regex
-         ↓
-Extract: line number, column, severity, message
-         ↓
-Create Monaco IMarkerData[] array
-         ↓
-monaco.editor.setModelMarkers(model, 'cpp', markers)
-         ↓
-Red squiggles appear in editor at exact positions
-         ↓
-Hover over squiggle shows error message tooltip
-```
-
-### 6. LocalStorage Persistence
-```
-On mount:
-    → Load 'code' from localStorage → setCode()
-    → Load 'editorSettings' JSON → setEditorSettings()
-         ↓
-On code change (useEffect dependency: code):
-    → localStorage.setItem('code', code)
-         ↓
-On settings change (useEffect dependency: editorSettings):
-    → localStorage.setItem('editorSettings', JSON.stringify(editorSettings))
-```
-
-## 🚀 Getting Started
-
-### Prerequisites
-- **Node.js 18+** and npm/yarn/pnpm
-- **g++ compiler** (for local execution):
-  - **Windows**: Install [MinGW-w64](https://www.mingw-w64.org/) and add `bin` folder to PATH
-  - **Linux**: `sudo apt install g++` (or equivalent)
-  - **macOS**: `xcode-select --install`
-
-### Installation
-
-```bash
-# Clone the repository
-git clone <your-repo-url>
-cd fastoj-ide
-
-# Install dependencies
-npm install
-```
-
-### Development
-
-```bash
-# Start the dev server
-npm run dev
-
-# Open http://localhost:3000 in your browser
-```
-
-### Verify g++ Installation
-
-```bash
-g++ --version
-# Should output: g++ (GCC) ...
-```
-
-If g++ is not found, the UI will show "Compilation failed: g++ not found in PATH" with installation instructions.
-
-### Build for Production
-
-```bash
-# Create optimized production build
-npm run build
-
-# Start production server
-npm start
-```
-
-## 📝 Usage
-
-1. **Write Code**: Type or paste C++ code in the Monaco editor (left panel)
-2. **Provide Input**: Enter test input in the Input tab (right panel, top)
-3. **Set Expected Output** (optional): Enter expected output in the Expected Output tab for automatic verdict
-4. **Save**: Press **Ctrl+S** (⌘+S on Mac) to manually save your code to localStorage
-5. **Run**: Click the "Run" button in the navbar or press **Ctrl+B** (⌘+B on Mac)
-6. **View Results**:
-   - **stdout tab**: Program output
-   - **Expected Output tab**: Manual input for comparison (shows green/red dot for match/mismatch)
-   - **stderr tab**: Debug output (`cerr`) or runtime errors
-   - **Status bar**: Compilation status and test verdict (Accepted/Wrong Answer/Runtime Error/TLE/Compilation Error)
-   - **Editor**: Red squiggles for compilation errors (hover for details)
-7. **Customize**: Click the gear icon to adjust:
-   - Font size (10-24px)
-   - Font family (Monaco, JetBrains Mono, Fira Code)
-   - Editor theme (10 themes available)
-8. **Download**: File → Download to save code as `solution.cpp`
-9. **Reset**: File → Reset to Default to restore boilerplate template
-
-## 🎯 Default Template
-
-```cpp
-#include <bits/stdc++.h>
-using namespace std;
-
-int main() {
-   // your code goes here
-
-   return 0;
-}
-```
-
-## ⚙️ Configuration
-
-The app uses local g++ compiler by default. No additional configuration is required.
-
-## 🔐 Security Considerations
-
-### Current (Local Development)
-- Temporary directories created per run, cleaned automatically
-- Timeouts prevent infinite loops (4s default, max 20s)
-- No network access from executed code (OS-level isolation not enforced)
-
-### For Production Hosting
-⚠️ **Do NOT run user code directly on the Next.js server in production.**
-
-Recommended architecture:
-- **Sandboxed Execution**: Use Docker containers with `--network=none`, CPU/memory limits, seccomp/apparmor profiles
-- **Separate Runner Service**: Dedicated microservice with queue (Redis/RabbitMQ) for job management
-- **Rate Limiting**: Per-IP or per-user submission limits
-- **Input Validation**: Sanitize all user inputs; never execute untrusted binaries outside containers
-
-See "Future Plan" section for ICPC Online Judge architecture.
-
-## 🛣️ Roadmap
-
-### Completed ✅
-- Monaco editor with C++ syntax highlighting
-- Custom themes with full UI consistency
-- Local g++ compilation and execution
-- Input/output panels with line numbers
-- Resizable split layout (horizontal and vertical)
-- Real-time compilation status and verdicts
-- Expected output comparison (Accepted/Wrong Answer)
-- Inline error markers in editor
-- Settings persistence (localStorage)
-- Download and reset functionality
-
-### Planned 🚧
-- **Multi-language Support**: Python, Java, JavaScript
-- **Contest Mode**: ICPC-style problems, submissions, scoreboard
-  - User authentication and team management
-  - Problem statements with multiple test cases
-  - Automated judging with custom checkers/SPJ
-  - Scoreboard with freeze/unfreeze and penalty calculation
-  - Clarifications system
-- **Remote Runner**: Dockerized execution backend with queue
-  - Horizontal scaling for high throughput
-  - Time/memory limits per language
-  - Interactive problem support
-- **Advanced Editor Features**:
-  - Code templates and snippets
-  - Multi-file editing
-  - Vim/Emacs keybindings
-- **UI Enhancements**:
-  - Diff view for expected vs actual output
-  - Multiple test case management
-  - Execution history
-  - Dark/light mode toggle independent of editor theme
-- **Deployment**:
-  - Docker Compose setup for full stack
-  - Kubernetes manifests for production
-  - CI/CD pipelines
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 🙏 Acknowledgments
-
-- [Monaco Editor](https://microsoft.github.io/monaco-editor/) by Microsoft
-- [Next.js](https://nextjs.org/) by Vercel
-- [TailwindCSS](https://tailwindcss.com/)
-- [react-resizable-panels](https://github.com/bvaughn/react-resizable-panels) by Brian Vaughn
-- Inspired by USACO and Codeforces IDE interfaces
-
-## 📧 Contact
-
-For questions, suggestions, or issues, please open an issue on GitHub.
 
 ---
 
-**FastOJ IDE - Built with ❤️ for competitive programmers and C++ enthusiasts**
+## ⚙️ Configuration
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `REDIS_URL` | `redis://localhost:6379` | Redis connection string for BullMQ |
+| `BULLMQ_CONCURRENCY` | `1` | Number of jobs worker processes simultaneously |
+
+Set in `start.bat` or manually:
+```bash
+set REDIS_URL=redis://localhost:6379
+set BULLMQ_CONCURRENCY=2
+```
+
+### Docker Execution Limits
+
+Configured in `lib/dockerRunner.ts`:
+```typescript
+--memory=256m              // RAM limit
+--cpus=1.0                 // CPU cores
+--network=none             // No internet access
+--pids-limit=50            // Max processes
+timeout: 2000              // 2 second execution limit
+```
+
+### Compilation Flags
+
+```bash
+g++ -std=c++20 -O2 -o main main.cpp
+```
+- `-std=c++20` - C++20 standard
+- `-O2` - Optimization level 2
+
+---
+
+## 🏗️ Architecture
+
+### System Flow
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         Browser                              │
+│  ┌──────────────┐    ┌──────────────┐   ┌──────────────┐   │
+│  │ Code Editor  │───▶│   IOPanel    │◀──│  Status Bar  │   │
+│  │  (Monaco)    │    │ (I/O Tabs)   │   │ (Time/Mem)   │   │
+│  └──────────────┘    └──────────────┘   └──────────────┘   │
+│           │                    ▲                             │
+│           │ POST /api/run      │ GET /api/result (polling)  │
+│           ▼                    │                             │
+└───────────────────────────────────────────────────────────────┘
+            │                    │
+            ▼                    ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Next.js Server (API Routes)               │
+│  ┌──────────────────┐       ┌────────────────────┐         │
+│  │   /api/run       │       │   /api/result      │         │
+│  │ Create job       │       │ Fetch job status   │         │
+│  └────────┬─────────┘       └────────▲───────────┘         │
+│           │                          │                       │
+└───────────┼──────────────────────────┼───────────────────────┘
+            │                          │
+            ▼                          │
+┌─────────────────────────────────────────────────────────────┐
+│                    Redis (Job Queue)                         │
+│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐   │
+│  │  Waiting      │─▶│   Active      │─▶│  Completed    │   │
+│  │  Queue        │  │   Jobs        │  │  Results      │   │
+│  └───────────────┘  └───────────────┘  └───────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                        ▲            │
+                        │            ▼
+            ┌───────────────────────────────┐
+            │    BullMQ Worker Process      │
+            │  (runWorker.ts)               │
+            │  - Picks up jobs              │
+            │  - Executes via Docker        │
+            │  - Stores results             │
+            └───────────┬───────────────────┘
+                        │
+                        ▼
+            ┌───────────────────────────────┐
+            │    Docker Container           │
+            │  - Compile C++ code           │
+            │  - Execute with limits        │
+            │  - Measure time/memory        │
+            │  - Return output              │
+            └───────────────────────────────┘
+```
+
+### Request Flow (Step by Step)
+
+1. **User Clicks "Run"**
+   - Frontend calls `runCppLocal()` in `lib/runCode.ts`
+
+2. **Submit Job**
+   - POST to `/api/run` with code and input
+   - Server creates job in BullMQ queue via `getRunQueue().add()`
+   - Returns `jobId` to frontend
+
+3. **Worker Processing**
+   - Worker (`runWorker.ts`) picks up job from queue
+   - Calls `runCppInDocker()` with code and input
+   - Docker container created with resource limits
+
+4. **Execution**
+   - Code compiled: `g++ -std=c++20 -O2 -o main main.cpp`
+   - Binary executed with `/usr/bin/time` for memory tracking
+   - Output captured (stdout, stderr, exit code)
+   - Execution time measured in milliseconds
+
+5. **Result Storage**
+   - Worker stores result back in Redis via BullMQ
+   - Job marked as "completed" with return value
+
+6. **Frontend Polling**
+   - Browser polls GET `/api/result?jobId=X` every 500ms
+   - Max 60 attempts (30 seconds timeout)
+   - Receives result when job completes
+
+7. **Display Output**
+   - Parse status (AC, CE, TLE, RE)
+   - Show stdout, stderr, time, memory
+   - Update status bar with verdict
+
+---
+
+## 🧪 Testing
+
+### Basic Test
+1. Open http://localhost:3000
+2. Enter this code:
+   ```cpp
+   #include <iostream>
+   using namespace std;
+   int main() {
+       cout << "Hello, FastOJ!";
+       return 0;
+   }
+   ```
+3. Click **Run** or press `Ctrl+B`
+4. Expected output: `Hello, FastOJ!`
+5. Status bar shows: `Accepted, Xms, Y.YMB`
+
+### With Input
+**Code:**
+```cpp
+#include <iostream>
+using namespace std;
+int main() {
+    int a, b;
+    cin >> a >> b;
+    cout << a + b;
+    return 0;
+}
+```
+**Input Tab:**
+```
+5 3
+```
+**Expected Output:** `8`
+
+### Test Case Validation
+1. Enter expected output: `8`
+2. Run code
+3. Green checkmark if output matches
+4. Red X if output differs
+
+---
+
+## 🐛 Troubleshooting
+
+### "Job timed out waiting for result"
+**Symptoms:** Frontend shows timeout after 30 seconds  
+**Cause:** Worker process not running  
+**Solution:**
+```bash
+# Check if worker is running
+Get-Process | Where-Object {$_.ProcessName -like "*node*"}
+
+# Restart with npm run go
+npm run go
+```
+
+### Docker Build Errors
+**Error:** `docker: command not found`  
+**Solution:** 
+1. Install Docker Desktop: https://www.docker.com/products/docker-desktop
+2. Start Docker Desktop
+3. Verify: `docker --version`
+
+**Error:** `Cannot connect to Docker daemon`  
+**Solution:** Start Docker Desktop application
+
+### Redis Connection Errors
+**Error:** `Error: connect ECONNREFUSED 127.0.0.1:6379`  
+**Solution:**
+```bash
+# Check if Redis container exists
+docker ps -a | findstr fastoj-redis
+
+# Start if stopped
+docker start fastoj-redis
+
+# Create if doesn't exist
+docker run -d --name fastoj-redis -p 6379:6379 redis:7-alpine
+```
+
+### Compilation Errors Not Showing
+**Issue:** Code doesn't compile but no error markers  
+**Solution:** Check `/api/run` console logs for actual errors
+
+### Port Already in Use
+**Error:** `Port 3000 is already in use`  
+**Solution:**
+```bash
+# Find process using port 3000
+netstat -ano | findstr :3000
+
+# Kill the process (replace PID)
+taskkill /F /PID <PID>
+```
+
+### Worker Won't Stop
+**Solution:**
+```bash
+# Stop all node processes (warning: kills all)
+taskkill /F /IM node.exe
+
+# Or find specific worker PID
+Get-Process node
+Stop-Process -Id <PID>
+```
+
+---
+
+## 📚 Technology Stack
+
+### Frontend
+- **Next.js** 16.0.4 - React framework with App Router
+- **React** 18.2.0 - UI library
+- **TypeScript** 5 - Type-safe JavaScript
+- **Monaco Editor** 4.7.0 - VS Code editor component
+- **Tailwind CSS** 4 - Utility-first CSS framework
+- **react-resizable-panels** 3.0.6 - Draggable panel splits
+
+### Backend
+- **BullMQ** 5.65.0 - Redis-backed job queue
+- **IORedis** 5.8.2 - Redis client
+- **tsx** 4.20.6 - TypeScript execution for worker
+
+### Infrastructure
+- **Docker** - Container runtime
+  - `gcc:latest` - Base image
+  - `redis:7-alpine` - Queue storage
+- **Redis** 7 - In-memory data store
+
+### Development
+- **Biome** 2.2.0 - Fast linter and formatter
+- **TypeScript** - Static type checking
+
+---
+
+## 📝 Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run go` | **Start everything** (Redis + Worker + Server) |
+| `npm run dev` | Start Next.js dev server only |
+| `npm run build` | Build for production |
+| `npm start` | Start production server |
+| `npm run worker` | Start BullMQ worker only |
+| `npm run lint` | Run Biome linter |
+| `npm run format` | Format code with Biome |
+
+---
+
+## 🔒 Security Features
+
+- **Network Isolation** - Docker containers have no internet access
+- **Resource Limits** - CPU, memory, and process limits prevent abuse
+- **Timeout Protection** - 2-second execution limit
+- **Sandboxing** - Code runs in isolated containers
+- **No Persistence** - Containers removed after execution
+
+---
+
+## 🚀 Production Deployment
+
+### Build for Production
+```bash
+npm run build
+```
+
+### Environment Setup
+```bash
+# Set Redis URL for production
+set REDIS_URL=redis://your-redis-host:6379
+
+# Set worker concurrency (optional)
+set BULLMQ_CONCURRENCY=4
+```
+
+### Start Production Services
+
+**Terminal 1 - Worker:**
+```bash
+set REDIS_URL=redis://your-redis-host:6379
+npm run worker
+```
+
+**Terminal 2 - Server:**
+```bash
+set REDIS_URL=redis://your-redis-host:6379
+npm start
+```
+
+### Recommended Production Setup
+- Use **PM2** for process management
+- Deploy Redis on separate instance
+- Use **Nginx** as reverse proxy
+- Enable **HTTPS** with SSL certificate
+- Set up **monitoring** (logs, metrics)
+
+---
+
+## 📄 License
+
+MIT License - See LICENSE file for details
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+---
+
+## 📞 Support
+
+- **Issues:** https://github.com/your-repo/issues
+- **Discussions:** https://github.com/your-repo/discussions
+
+---
+
+## 🙏 Acknowledgments
+
+- **Monaco Editor** - Microsoft
+- **Next.js** - Vercel
+- **BullMQ** - Taskforcesh
+- **Docker** - Docker Inc.
+
+---
+
+**Built with ❤️ for competitive programmers**
+
+Version 1.0.0 | Last Updated: November 2025

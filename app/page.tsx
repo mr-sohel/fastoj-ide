@@ -29,6 +29,8 @@ export default function Home() {
   const [compileStatus, setCompileStatus] = useState<'idle' | 'compiling' | 'success' | 'error'>('idle');
   const [compileMessage, setCompileMessage] = useState<string>('');
   const [compileErrors, setCompileErrors] = useState<string>('');
+  const [executionTime, setExecutionTime] = useState<string | undefined>();
+  const [memoryUsed, setMemoryUsed] = useState<number | undefined>();
   const compileTimerRef = useRef<number | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -87,7 +89,7 @@ export default function Home() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [code, input, expectedOutput, compileStatus]);
+  }, [code, compileStatus]);
 
   const handleDownload = () => {
     const blob = new Blob([code], { type: 'text/plain' });
@@ -107,7 +109,7 @@ export default function Home() {
     []
   );
 
-  const handleRun = async () => {
+  const handleRun = useCallback(async () => {
     if (compileTimerRef.current) {
       clearTimeout(compileTimerRef.current);
       compileTimerRef.current = null;
@@ -117,9 +119,15 @@ export default function Home() {
     setTestResult('none');
     setStdout('');
     setStderr('');
+    setExecutionTime(undefined);
+    setMemoryUsed(undefined);
 
     try {
       const res = await runCppLocal(code, input);
+      
+      // Store execution stats
+      setExecutionTime(res.time);
+      setMemoryUsed(res.memory);
 
       // Compilation errors (only if status is CE)
       if (res.status && res.status.id === 6) {
@@ -138,15 +146,18 @@ export default function Home() {
       setStdout(res.stdout || '');
       setStderr(res.stderr || '');
 
-      const meta: string[] = [];
-      if (res.time) meta.push(`${res.time}s`);
-      if (typeof res.memory === 'number') meta.push(`${res.memory} KB`);
-      const baseMsg = meta.length ? `Ran in ${meta.join(', ')}` : 'Run completed';
+      // Check for time limit exceeded
+      if (res.status && res.status.id === 5) {
+        setCompileStatus('error');
+        setCompileMessage('Time Limit Exceeded');
+        setTestResult('none');
+        return;
+      }
 
       // Check for runtime errors based on status, not just stderr presence
       if (res.status && res.status.id === 4) {
         setCompileStatus('error');
-        setCompileMessage(`${baseMsg} • Runtime error`);
+        setCompileMessage('Runtime error');
         setTestResult('none');
         return;
       }
@@ -154,16 +165,16 @@ export default function Home() {
       if (expectedOutput.trim().length > 0) {
         if (normalize(res.stdout || '') === normalize(expectedOutput)) {
           setCompileStatus('success');
-          setCompileMessage(`${baseMsg} • Accepted`);
+          setCompileMessage('');
           setTestResult('accepted');
         } else {
           setCompileStatus('success');
-          setCompileMessage(`${baseMsg} • Wrong Answer`);
+          setCompileMessage('');
           setTestResult('wrong');
         }
       } else {
         setCompileStatus('success');
-        setCompileMessage(baseMsg);
+        setCompileMessage('');
         setTestResult('none');
       }
     } catch (err: any) {
@@ -171,7 +182,7 @@ export default function Home() {
       setCompileMessage(`Run failed: ${err?.message || 'Unknown error'}`);
       setTestResult('none');
     }
-  };
+  }, [code, input, expectedOutput, normalize]);
 
   const handleCodeChange = useCallback((value: string | undefined) => {
     setCode(value || '');
@@ -262,6 +273,8 @@ export default function Home() {
         message={compileMessage}
         testResult={testResult}
         editorTheme={editorSettings.editorTheme}
+        executionTime={executionTime}
+        memoryUsed={memoryUsed}
       />
     </div>
   );

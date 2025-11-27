@@ -7,23 +7,36 @@ interface StatusBarProps {
   message?: string;
   testResult?: 'none' | 'accepted' | 'wrong';
   editorTheme: string;
+  executionTime?: string;
+  memoryUsed?: number;
 }
 
-export default function StatusBar({ status, message, testResult = 'none', editorTheme }: StatusBarProps) {
-  const colors = getThemeColors(editorTheme);
+import { useMemo } from 'react';
 
-  const statusInfo = {
+export default function StatusBar({ status, message, testResult = 'none', editorTheme, executionTime, memoryUsed }: StatusBarProps) {
+  const colors = useMemo(() => getThemeColors(editorTheme), [editorTheme]);
+
+  const statusInfo = useMemo(() => ({
     idle: { label: 'Idle', color: '#6B7280' },
     compiling: { label: 'Compiling…', color: '#F59E0B' },
-    success: { label: 'Compiled successfully', color: '#16A34A' },
-    error: { label: 'Compilation failed', color: '#DC2626' },
-  }[status];
+    success: { label: 'Compilation successful', color: '#16A34A' },
+    error: { label: 'Compilation successful', color: '#DC2626' },
+  }[status]), [status]);
 
-  const resultInfo = testResult === 'accepted'
+  const resultInfo = useMemo(() => testResult === 'accepted'
     ? { label: 'Accepted', color: '#16A34A' }
     : testResult === 'wrong'
       ? { label: 'Wrong Answer', color: '#DC2626' }
-      : null;
+      : null, [testResult]);
+
+  // Format execution stats: "Accepted, 3ms, 2.68MB"
+  const statsDisplay = useMemo(() => {
+    if (!resultInfo) return undefined;
+    if (!executionTime || !memoryUsed) return resultInfo.label;
+    const timeMs = Math.round(parseFloat(executionTime) * 1000);
+    const memMB = (memoryUsed / 1024).toFixed(2);
+    return `${resultInfo.label}, ${timeMs}ms, ${memMB}MB`;
+  }, [resultInfo, executionTime, memoryUsed]);
 
   return (
     <div
@@ -36,7 +49,7 @@ export default function StatusBar({ status, message, testResult = 'none', editor
       role="status"
       aria-live="polite"
     >
-      {/* Left: status indicator */}
+      {/* Left: compilation status */}
       <div className="flex items-center gap-2">
         <span
           style={{
@@ -48,28 +61,28 @@ export default function StatusBar({ status, message, testResult = 'none', editor
           }}
         />
         <span>{statusInfo.label}</span>
-        {message ? <span style={{ opacity: 0.8 }}>— {message}</span> : null}
       </div>
 
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Right: quick info */}
+      {/* Right: execution result and theme */}
       <div className="flex items-center gap-4" style={{ opacity: 0.85 }}>
-        {resultInfo && (
+        {statsDisplay && (
           <div className="flex items-center gap-1">
             <span
               style={{
                 width: 6,
                 height: 6,
                 borderRadius: 9999,
-                backgroundColor: resultInfo.color,
+                backgroundColor: resultInfo!.color,
                 display: 'inline-block'
               }}
             />
-            <span>{resultInfo.label}</span>
+            <span>{statsDisplay}</span>
           </div>
         )}
+        {message && <span style={{ color: '#DC2626' }}>{message}</span>}
         <span style={{ opacity: 0.7 }}>Theme: {editorTheme}</span>
       </div>
     </div>

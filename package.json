@@ -6,15 +6,18 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "worker": "tsx ./worker/runWorker.ts",
+    "go": "start.bat",
     "lint": "biome check",
-    "format": "biome format --write",
-    "prod": "npm run build && npm start"
+    "format": "biome format --write"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
+    "bullmq": "^5.65.0",
+    "ioredis": "^5.8.2",
     "next": "16.0.4",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
     "react-resizable-panels": "^3.0.6"
   },
   "devDependencies": {
@@ -24,6 +27,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "tailwindcss": "^4",
+    "tsx": "^4.20.6",
     "typescript": "^5"
   }
 }
